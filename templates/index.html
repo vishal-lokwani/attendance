@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition Attendance System</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 1200px;
+            text-align: center;
+        }
+
+        /* Title Design */
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #007bff;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            position: relative;
+            display: inline-block;
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            0% {
+                text-shadow: 0 0 5px #007bff, 0 0 10px #007bff, 0 0 20px #007bff;
+            }
+            100% {
+                text-shadow: 0 0 10px #00bfff, 0 0 20px #00bfff, 0 0 30px #00bfff;
+            }
+        }
+
+        /* Main Content Layout */
+        .main-content {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .camera-container {
+            flex: 2.8; /* 3/4 of the width */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        .camera {
+            width: 100%;
+            height: 65vh; 
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            object-fit: cover; 
+        }
+        .attendance-container {
+            flex: 1.2; /* 1/4 of the width */
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* Card Styles */
+        .attendance-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+            gap: 1.5rem;
+            padding: 1rem;
+        }
+
+        .attendance-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Two-column layout */
+            gap: 1rem;
+        }
+
+        .attendance-card img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid #007bff;
+        }
+
+        .attendance-card h4 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #007bff;
+        }
+
+        .attendance-card .details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .attendance-card .details span {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .attendance-card .details ul {
+            margin: 0;
+            padding-left: 1rem;
+            list-style-type: none;
+        }
+
+        .attendance-card .details ul li {
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        /* Button Styles */
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+            margin: 1rem 0.5rem 0; /* Added margin-top to move the button down */
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        /* Message Styles */
+        .message {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            display: none;
+            text-align: center;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.3); /* Light white background */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .loading-spinner {
+            font-size: 1.5rem;
+            color: #007bff;
+        }
+
+        /* Success Popup */
+        .success-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+    </style>
+    <script>
+        function resetCameraFeed() {
+            // Reset the camera feed by reloading the video stream
+            let cameraFeed = document.getElementById("camera-feed");
+            cameraFeed.src = "{{ url_for('video_feed') }}";
+        }
+
+        function capturePhoto() {
+            // Show loading overlay
+            document.getElementById("loading-overlay").style.display = "flex";
+
+            fetch('/capture_photo', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.matched) {
+                        // Automatically call addAttendance without showing a confirmation popup
+                        addAttendance(data.user_id, data.name);
+                    } else {
+                        // Show no match error
+                        showMessage("No match found. Please try again.", "error");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage("An error occurred. Please try again.", "error");
+                })
+        }
+
+        function addAttendance(userId, name) {
+            fetch('/add_attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success popup with overlay
+                    showSuccessPopup(`Hello ${name}, Attendance recorded successfully!`);
+                    fetchAttendanceData(); // Refresh attendance data
+                } else {
+                    showMessage(data.error || "Failed to record attendance.", "error");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage("An unexpected error occurred.", "error");
+            });
+        }
+
+        function showSuccessPopup(message) {
+            let successPopup = document.getElementById("success-popup");
+            successPopup.textContent = message;
+            successPopup.style.display = "block";
+
+            // Hide the popup and overlay after 5 seconds
+            setTimeout(() => {
+                successPopup.style.display = "none";
+                document.getElementById("loading-overlay").style.display = "none";
+            }, 3000);
+        }
+
+        function showMessage(message, type) {
+            let messageDiv = document.getElementById("message");
+            messageDiv.textContent = message;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = "block";
+
+            // Hide the message after 5 seconds
+            setTimeout(() => {
+                messageDiv.style.display = "none";
+            }, 5000);
+        }
+
+        function fetchAttendanceData() {
+            fetch('/get_attendance', { method: 'GET' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let cardsContainer = document.getElementById("attendance-cards");
+                        cardsContainer.innerHTML = ''; // Clear existing cards
+
+                        data.attendance_data.forEach(record => {
+                            let card = document.createElement('div');
+                            card.className = 'attendance-card';
+
+                            let breakInTimes = record.breakIn.length > 0 
+                                ? record.breakIn.map(b => `<li>${new Date(b.time).toLocaleTimeString()}</li>`).join('')
+                                : '<li>N/A</li>';
+
+                            let breakOutTimes = record.breakOut.length > 0 
+                                ? record.breakOut.map(b => `<li>${new Date(b.time).toLocaleTimeString()}</li>`).join('')
+                                : '<li>N/A</li>';
+
+                            card.innerHTML = `
+                                <img src="${record.In.image}" alt="User Image">
+                                <h4>${record.name}</h4>
+                                <div class="details">
+                                    <p><span>Date:</span> ${new Date(record.date).toLocaleString()}</p>
+                                    <p><span>In Time:</span> ${new Date(record.In.time).toLocaleTimeString()}</p>
+                                    <p><span>Out Time:</span> ${record.Out.time ? new Date(record.Out.time).toLocaleTimeString() : 'N/A'}</p>
+                                </div>
+                                <div class="details">
+                                    <p><span>Lunch In:</span> ${record.lunchIn.time ? new Date(record.lunchIn.time).toLocaleTimeString() : 'N/A'}</p>
+                                    <p><span>Lunch Out:</span> ${record.lunchOut.time ? new Date(record.lunchOut.time).toLocaleTimeString() : 'N/A'}</p>
+                                    <p><span>Break In Times:</span></p>
+                                    <ul>${breakInTimes}</ul>
+                                    <p><span>Break Out Times:</span></p>
+                                    <ul>${breakOutTimes}</ul>
+                                </div>
+                            `;
+
+                            cardsContainer.appendChild(card);
+                        });
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Fetch attendance data on page load
+        window.onload = fetchAttendanceData;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Designed Title -->
+        <div class="title">Face Recognition Attendance System</div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Camera Feed Section (3/4 width) -->
+            <div class="camera-container">
+                <img id="camera-feed" src="{{ url_for('video_feed') }}" class="camera">
+                <button class="btn" onclick="capturePhoto()">Capture Photo</button>
+            </div>
+
+            <!-- Attendance Data Section (1/4 width) -->
+            <div class="attendance-container">
+                <h3>Attendance Data</h3>
+                <div id="attendance-cards" class="attendance-cards"></div>
+            </div>
+        </div>
+
+        <!-- Result and Message Section -->
+        <div id="result"></div>
+        <div id="message" class="message"></div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="loading-spinner">Loading...</div>
+        </div>
+
+        <!-- Success Popup -->
+        <div id="success-popup" class="success-popup"></div>
+    </div>
+</body>
+</html>
