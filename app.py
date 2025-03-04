@@ -9,6 +9,7 @@ import firebase_admin
 from firebase_admin import credentials, storage
 from bson import ObjectId
 from datetime import datetime, timezone, timedelta
+import shutil  # Add this import for folder deletion
 
 # Define Indian Standard Time (IST)
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -29,7 +30,6 @@ ist_minute = current_time_ist.minute
 is_lunch_time = (ist_hour == 13 and ist_minute >= 30) or (ist_hour == 14 and ist_minute < 30)
 
 print("Is Lunch Time:", is_lunch_time)  # Debugging
-
 
 # Initialize Firebase Admin SDK
 cred = credentials.Certificate("serviceAccountKey.json")  # Path to your Firebase service account key
@@ -178,15 +178,11 @@ def add_attendance():
             is_before_7pm = current_time.hour < 19
 
             if existing_attendance.get("In") and not is_lunch_time and len(breakIn_list) == len(breakOut_list) and is_before_7pm:
-                
                 # Add breakIn to the array
                 update_data["breakIn"] = existing_attendance.get("breakIn", []) + [{"time": current_time, "image": firebase_image_url}]
-
             elif existing_attendance.get("In") and not is_lunch_time and is_before_7pm:
-                
                 # Add breakOut to the array
                 update_data["breakOut"] = existing_attendance.get("breakOut", []) + [{"time": current_time, "image": firebase_image_url}]
-
             else:
                 # Handle In, Out, lunchIn, and lunchOut as before
                 if is_lunch_time:
@@ -224,6 +220,11 @@ def add_attendance():
                 "updatedAt": current_time
             }
             attendance_collection.insert_one(attendance_record)
+
+        # Delete the captured_images folder after the record is saved
+        if os.path.exists("captured_images"):
+            shutil.rmtree("captured_images")
+            print("Deleted captured_images folder.")
 
         captured_image_path = None
         return jsonify({'success': True}), 200
