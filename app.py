@@ -40,7 +40,7 @@ firebase_admin.initialize_app(cred, {
 app = Flask(__name__)
 
 # Connect to MongoDB
-db_client = pymongo.MongoClient("mongodb://localhost:27017/")  # Replace with your MongoDB connection string
+db_client = pymongo.MongoClient("mongodb+srv://viddeveloper108:f1gvIBwcoUbdJTT4@cluster0.b4bdbsg.mongodb.net/attedance?retryWrites=true&w=majority&appName=Cluster0")  # Replace with your MongoDB connection string
 db = db_client["vid_attendance"]  # Database name
 users_collection = db["officeusers"]  # Collection for users
 attendance_collection = db["attendancedata"]  # Collection for attendance
