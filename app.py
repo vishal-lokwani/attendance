@@ -148,6 +148,7 @@ def add_attendance():
     global captured_image_path
     data = request.get_json()
     user_id = data.get('user_id')
+    action = ""
 
     if not user_id:
         return jsonify({'success': False, 'error': 'User ID is required'}), 400
@@ -180,21 +181,26 @@ def add_attendance():
             if existing_attendance.get("In") and not is_lunch_time and len(breakIn_list) == len(breakOut_list) and is_before_7pm:
                 # Add breakIn to the array
                 update_data["breakIn"] = existing_attendance.get("breakIn", []) + [{"time": current_time, "image": firebase_image_url}]
+                action = "break in successfully"
             elif existing_attendance.get("In") and not is_lunch_time and is_before_7pm:
                 # Add breakOut to the array
                 update_data["breakOut"] = existing_attendance.get("breakOut", []) + [{"time": current_time, "image": firebase_image_url}]
+                action = "break out successfully"
             else:
                 # Handle In, Out, lunchIn, and lunchOut as before
                 if is_lunch_time:
                     if not existing_attendance.get("lunchIn") or not existing_attendance["lunchIn"].get("time"):
                         update_data["lunchIn"] = {"time": current_time, "image": firebase_image_url}
+                        action = "lunch in successfully"
                     elif not existing_attendance.get("lunchOut") or not existing_attendance["lunchOut"].get("time"):
                         update_data["lunchOut"] = {"time": current_time, "image": firebase_image_url}
+                        action = "lunch out successfully"
                     else:
                         return jsonify({'success': False, 'error': 'Lunch time already recorded for today'}), 400
                 else:
                     if not existing_attendance.get("Out") or not existing_attendance["Out"].get("time"):
                         update_data["Out"] = {"time": current_time, "image": firebase_image_url}
+                        action = "Out successfully"
                     else:
                         return jsonify({'success': False, 'error': 'Out time already recorded for today'}), 400
 
@@ -220,7 +226,7 @@ def add_attendance():
                 "updatedAt": current_time
             }
             attendance_collection.insert_one(attendance_record)
-
+            action = "In successfully"
         # Delete the captured_images folder after the record is saved
         if os.path.exists("captured_images"):
             shutil.rmtree("captured_images")
@@ -228,7 +234,7 @@ def add_attendance():
         if not os.path.exists("captured_images"):
             os.makedirs("captured_images")
         captured_image_path = None
-        return jsonify({'success': True}), 200
+        return jsonify({'success': True, "message":action}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
         

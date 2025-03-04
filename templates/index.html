@@ -242,9 +242,10 @@
             })
             .then(response => response.json())
             .then(data => {
+                console.log("data",data);
                 if (data.success) {
                     // Show success popup with overlay
-                    showSuccessPopup(`Hello ${name}, Attendance recorded successfully!`);
+                    showSuccessPopup(`Hello ${name}, Your ${data.message}!`);
                     fetchAttendanceData(); // Refresh attendance data
                 } else {
                     showMessage(data.error || "Failed to record attendance.", "error");
