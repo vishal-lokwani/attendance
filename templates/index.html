@@ -77,58 +77,48 @@
         }
 
         /* Card Styles */
-        .attendance-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
-            gap: 1.5rem;
-            padding: 1rem;
-        }
-
         .attendance-card {
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-            display: grid;
-            grid-template-columns: 1fr 1fr; /* Two-column layout */
-            gap: 1rem;
-        }
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 1rem;
+        text-align: left;
+        font-size: 0.85rem;
+        width: 100%;
+    }
 
-        .attendance-card img {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 2px solid #007bff;
-        }
+    .attendance-card img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #007bff;
+    }
 
-        .attendance-card h4 {
-            margin: 0;
-            font-size: 1.25rem;
-            color: #007bff;
-        }
+    .attendance-card .info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
 
-        .attendance-card .details {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
+    .attendance-card h4 {
+        margin: 0;
+        font-size: 1rem;
+        color: #007bff;
+    }
 
-        .attendance-card .details span {
-            font-weight: 600;
-            color: #333;
-        }
+    .attendance-card .details {
+        font-size: 0.75rem;
+        color: #555;
+    }
 
-        .attendance-card .details ul {
-            margin: 0;
-            padding-left: 1rem;
-            list-style-type: none;
-        }
-
-        .attendance-card .details ul li {
-            font-size: 0.9rem;
-            color: #555;
-        }
+    .attendance-card .details span {
+        font-weight: bold;
+        color: #333;
+    }
 
         /* Button Styles */
         .btn {
@@ -302,52 +292,49 @@
         }
 
         function fetchAttendanceData() {
-            fetch('/get_attendance', { method: 'GET' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        let cardsContainer = document.getElementById("attendance-cards");
-                        cardsContainer.innerHTML = ''; // Clear existing cards
+        fetch('/get_attendance', { method: 'GET' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let cardsContainer = document.getElementById("attendance-cards");
+                    cardsContainer.innerHTML = ''; // Clear existing cards
 
-                        data.attendance_data.forEach(record => {
-                            let card = document.createElement('div');
-                            card.className = 'attendance-card';
+                    data.attendance_data.forEach(record => {
+                        let card = document.createElement('div');
+                        card.className = 'attendance-card';
 
-                            let breakInTimes = record.breakIn.length > 0 
-                                ? record.breakIn.map(b => `<li>${new Date(b.time).toLocaleTimeString()}</li>`).join('')
-                                : '<li>N/A</li>';
+                        let breakInTimes = record.breakIn.length > 0 
+                            ? record.breakIn.map(b => `${new Date(b.time).toLocaleTimeString()}`).join(', ')
+                            : 'N/A';
 
-                            let breakOutTimes = record.breakOut.length > 0 
-                                ? record.breakOut.map(b => `<li>${new Date(b.time).toLocaleTimeString()}</li>`).join('')
-                                : '<li>N/A</li>';
+                        let breakOutTimes = record.breakOut.length > 0 
+                            ? record.breakOut.map(b => `${new Date(b.time).toLocaleTimeString()}`).join(', ')
+                            : 'N/A';
 
-                            card.innerHTML = `
-                                <img src="${record.In.image}" alt="User Image">
+                        card.innerHTML = `
+                            <img src="${record.In.image}" alt="User Image">
+                            <div class="info">
                                 <h4>${record.name}</h4>
                                 <div class="details">
-                                    <p><span>Date:</span> ${new Date(record.date).toLocaleString()}</p>
+                                    <p><span>Date:</span> ${new Date(record.date).toLocaleDateString()}</p>
                                     <p><span>In Time:</span> ${new Date(record.In.time).toLocaleTimeString()}</p>
                                     <p><span>Out Time:</span> ${record.Out.time ? new Date(record.Out.time).toLocaleTimeString() : 'N/A'}</p>
-                                </div>
-                                <div class="details">
                                     <p><span>Lunch In:</span> ${record.lunchIn.time ? new Date(record.lunchIn.time).toLocaleTimeString() : 'N/A'}</p>
                                     <p><span>Lunch Out:</span> ${record.lunchOut.time ? new Date(record.lunchOut.time).toLocaleTimeString() : 'N/A'}</p>
-                                    <p><span>Break In Times:</span></p>
-                                    <ul>${breakInTimes}</ul>
-                                    <p><span>Break Out Times:</span></p>
-                                    <ul>${breakOutTimes}</ul>
+                                    <p><span>Break In:</span> ${breakInTimes}</p>
+                                    <p><span>Break Out:</span> ${breakOutTimes}</p>
                                 </div>
-                            `;
+                            </div>
+                        `;
+                        
+                        cardsContainer.appendChild(card);
+                    });
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
 
-                            cardsContainer.appendChild(card);
-                        });
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        }
-
-        // Fetch attendance data on page load
-        window.onload = fetchAttendanceData;
+    window.onload = fetchAttendanceData;
     </script>
 </head>
 <body>
