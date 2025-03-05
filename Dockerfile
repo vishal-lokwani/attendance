@@ -5,16 +5,17 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Copy the current directory contents into the container
-COPY . /app
+COPY requirements.txt /app/
+COPY . /app/
 
-# Install any needed packages specified in requirements.txt
-#RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies from requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Make port 5000 available to the world outside this container
-EXPOSE 5000
+# Expose port 10000 (Render default port)
+EXPOSE 10000
 
-# Define environment variable
+# Define environment variable for Flask
 ENV FLASK_APP=app.py
 
-# Run app.py when the container launches
-CMD ["flask", "run", "--host=0.0.0.0"]
+# Allow Flask to run on any IP address and Render's default port
+CMD ["flask", "run", "--host=0.0.0.0", "--port=10000"]
