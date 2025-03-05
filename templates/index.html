@@ -207,6 +207,50 @@
 
     </style>
     <script>
+        // Function to speak a message using the Web Speech API
+        function speakMessage(message) {
+    if ('speechSynthesis' in window) {
+        const synth = window.speechSynthesis;
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'en-US'; // Language
+        utterance.volume = 1; // Volume (0 to 1)
+        utterance.rate = 1; // Speed (0.1 to 10)
+        utterance.pitch = 1.2; // Slightly higher pitch for a female-like effect
+
+        function setVoice() {
+            const voices = synth.getVoices();
+            console.log("Available voices:", voices);
+
+            // Look for a female voice (browser-dependent names)
+            const femaleVoice = voices.find(voice => 
+                voice.name.includes('Female') || 
+                voice.name.includes('Samantha') || 
+                voice.name.includes('Google UK English Female') || 
+                voice.name.includes('Victoria') || 
+                voice.name.includes('Alice') || 
+                voice.name.includes('Karen') || 
+                voice.name.includes('Tessa')
+            );
+
+            if (femaleVoice) {
+                utterance.voice = femaleVoice;
+            } else {
+                console.warn("No specific female voice found, using default voice.");
+            }
+
+            synth.speak(utterance);
+        }
+
+        // Some browsers (like Chrome) need voices to be loaded asynchronously
+        if (synth.getVoices().length > 0) {
+            setVoice();
+        } else {
+            synth.onvoiceschanged = setVoice;
+        }
+    } else {
+        console.warn("Speech synthesis not supported in this browser.");
+    }
+}
         function resetCameraFeed() {
             // Reset the camera feed by reloading the video stream
             let cameraFeed = document.getElementById("camera-feed");
@@ -225,13 +269,15 @@
                         addAttendance(data.user_id, data.name);
                     } else {
                         // Show no match error
-                        showErrorPopup("No match found. Please try again.", "error");
+                        showErrorPopup("No match found. Please try again.");
+                        speakMessage("No match found. Please try again."); // Speak the error message
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     showMessage("An error occurred. Please try again.", "error");
-                })
+                    speakMessage("An error occurred. Please try again."); // Speak the error message
+                });
         }
 
         function addAttendance(userId, name) {
@@ -242,18 +288,22 @@
             })
             .then(response => response.json())
             .then(data => {
-                console.log("data",data);
+                console.log("data", data);
                 if (data.success) {
                     // Show success popup with overlay
-                    showSuccessPopup(`Hello ${name}, Your ${data.message}!`);
+                    const successMessage = `Hello ${name}, Your ${data.message}!`;
+                    showSuccessPopup(successMessage);
+                    speakMessage(successMessage); // Speak the success message
                     fetchAttendanceData(); // Refresh attendance data
                 } else {
                     showMessage(data.error || "Failed to record attendance.", "error");
+                    speakMessage(data.error || "Failed to record attendance."); // Speak the error message
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 showMessage("An unexpected error occurred.", "error");
+                speakMessage("An unexpected error occurred."); // Speak the error message
             });
         }
 
@@ -262,22 +312,23 @@
             successPopup.textContent = message;
             successPopup.style.display = "block";
 
-            // Hide the popup and overlay after 3 seconds
+            // Hide the popup and overlay after 4 seconds
             setTimeout(() => {
                 successPopup.style.display = "none";
                 document.getElementById("loading-overlay").style.display = "none";
-            }, 3000);
+            }, 4000);
         }
+
         function showErrorPopup(message) {
             let errorPopup = document.getElementById("error-popup");
             errorPopup.textContent = message;
             errorPopup.style.display = "block";
 
-            // Hide the popup and overlay after 3 seconds
+            // Hide the popup and overlay after 4 seconds
             setTimeout(() => {
                 errorPopup.style.display = "none";
                 document.getElementById("loading-overlay").style.display = "none";
-            }, 3000);
+            }, 4000);
         }
 
         function showMessage(message, type) {
@@ -293,49 +344,49 @@
         }
 
         function fetchAttendanceData() {
-        fetch('/get_attendance', { method: 'GET' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    let cardsContainer = document.getElementById("attendance-cards");
-                    cardsContainer.innerHTML = ''; // Clear existing cards
+            fetch('/get_attendance', { method: 'GET' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let cardsContainer = document.getElementById("attendance-cards");
+                        cardsContainer.innerHTML = ''; // Clear existing cards
 
-                    data.attendance_data.forEach(record => {
-                        let card = document.createElement('div');
-                        card.className = 'attendance-card';
+                        data.attendance_data.forEach(record => {
+                            let card = document.createElement('div');
+                            card.className = 'attendance-card';
 
-                        let breakInTimes = record.breakIn.length > 0 
-                            ? record.breakIn.map(b => `${new Date(b.time).toLocaleTimeString()}`).join(', ')
-                            : 'N/A';
+                            let breakInTimes = record.breakIn.length > 0 
+                                ? record.breakIn.map(b => `${new Date(b.time).toLocaleTimeString()}`).join(', ')
+                                : 'N/A';
 
-                        let breakOutTimes = record.breakOut.length > 0 
-                            ? record.breakOut.map(b => `${new Date(b.time).toLocaleTimeString()}`).join(', ')
-                            : 'N/A';
+                            let breakOutTimes = record.breakOut.length > 0 
+                                ? record.breakOut.map(b => `${new Date(b.time).toLocaleTimeString()}`).join(', ')
+                                : 'N/A';
 
-                        card.innerHTML = `
-                            <img src="${record.In.image}" alt="User Image">
-                            <div class="info">
-                                <h4>${record.name}</h4>
-                                <div class="details">
-                                    <p><span>Date:</span> ${new Date(record.date).toLocaleDateString()}</p>
-                                    <p><span>In Time:</span> ${new Date(record.In.time).toLocaleTimeString()}</p>
-                                    <p><span>Out Time:</span> ${record.Out.time ? new Date(record.Out.time).toLocaleTimeString() : 'N/A'}</p>
-                                    <p><span>Lunch In:</span> ${record.lunchIn.time ? new Date(record.lunchIn.time).toLocaleTimeString() : 'N/A'}</p>
-                                    <p><span>Lunch Out:</span> ${record.lunchOut.time ? new Date(record.lunchOut.time).toLocaleTimeString() : 'N/A'}</p>
-                                    <p><span>Break In:</span> ${breakInTimes}</p>
-                                    <p><span>Break Out:</span> ${breakOutTimes}</p>
+                            card.innerHTML = `
+                                <img src="${record.In.image}" alt="User Image">
+                                <div class="info">
+                                    <h4>${record.name}</h4>
+                                    <div class="details">
+                                        <p><span>Date:</span> ${new Date(record.date).toLocaleDateString()}</p>
+                                        <p><span>In Time:</span> ${new Date(record.In.time).toLocaleTimeString()}</p>
+                                        <p><span>Out Time:</span> ${record.Out.time ? new Date(record.Out.time).toLocaleTimeString() : 'N/A'}</p>
+                                        <p><span>Lunch In:</span> ${record.lunchIn.time ? new Date(record.lunchIn.time).toLocaleTimeString() : 'N/A'}</p>
+                                        <p><span>Lunch Out:</span> ${record.lunchOut.time ? new Date(record.lunchOut.time).toLocaleTimeString() : 'N/A'}</p>
+                                        <p><span>Break In:</span> ${breakInTimes}</p>
+                                        <p><span>Break Out:</span> ${breakOutTimes}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        `;
-                        
-                        cardsContainer.appendChild(card);
-                    });
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    }
+                            `;
+                            
+                            cardsContainer.appendChild(card);
+                        });
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
 
-    window.onload = fetchAttendanceData;
+        window.onload = fetchAttendanceData;
     </script>
 </head>
 <body>
