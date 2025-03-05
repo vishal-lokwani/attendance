@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: python-flask-app
+    ports:
+      - "5000:5000"  # Map port 5000 of the container to port 5000 on the host machine
+    volumes:
+      - .:/app  # Mount the current directory to /app in the container, so changes are reflected immediately
+    environment:
+      - FLASK_ENV=development  # Set Flask environment variable to development
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
